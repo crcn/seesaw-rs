@@ -42,8 +42,8 @@ use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use smallvec::SmallVec;
 
-use crate::core::Event;
-use crate::machine::Machine;
+use seesaw_core::Event;
+use seesaw_core::Machine;
 
 // =============================================================================
 // Store Error
@@ -339,7 +339,7 @@ pub mod testing {
 mod tests {
     use super::*;
     use super::testing::InMemoryStore;
-    use crate::Command;
+    use seesaw_core::Command;
     use smallvec::smallvec;
     use uuid::Uuid;
 

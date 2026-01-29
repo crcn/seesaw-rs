@@ -2,6 +2,11 @@
 members = [
     "crates/seesaw",
     "crates/seesaw-job-postgres",
+    "crates/seesaw-outbox",
+    "crates/seesaw-persistence",
+    "crates/seesaw-testing",
+    "examples/http-fetcher",
+    "examples/ai-summarizer",
 ]
 resolver = "2"
 

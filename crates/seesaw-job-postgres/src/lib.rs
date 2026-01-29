@@ -67,7 +67,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use seesaw::job::{ClaimedJob, FailureKind, JobStore};
+use seesaw_core::job::{ClaimedJob, FailureKind, JobStore};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 

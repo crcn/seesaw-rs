@@ -18,7 +18,7 @@
 //! ## Using `assert_workflow!` Macro
 //!
 //! ```ignore
-//! use seesaw::testing::assert_workflow;
+//! use seesaw_core::testing::assert_workflow;
 //!
 //! let mut machine = MyMachine::new();
 //!
@@ -33,7 +33,7 @@
 //! ## Using Fluent Builder
 //!
 //! ```ignore
-//! use seesaw::testing::WorkflowTest;
+//! use seesaw_core::testing::WorkflowTest;
 //!
 //! WorkflowTest::new(MyMachine::new())
 //!     .given(Event::Start)
@@ -48,7 +48,7 @@
 //! ## Using `EventLatch` for Fan-Out Tests
 //!
 //! ```ignore
-//! use seesaw::testing::EventLatch;
+//! use seesaw_core::testing::EventLatch;
 //!
 //! let latch = EventLatch::new(3);  // Expect 3 events
 //!
@@ -68,9 +68,7 @@ use chrono::{DateTime, Utc};
 use tokio::sync::Notify;
 use uuid::Uuid;
 
-use crate::core::JobSpec;
-use crate::dispatch::JobQueue;
-use crate::machine::Machine;
+use seesaw_core::{JobQueue, JobSpec, Machine};
 
 /// Asserts a sequence of event → command transitions for a machine.
 ///
@@ -91,7 +89,7 @@ use crate::machine::Machine;
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::testing::assert_workflow;
+/// use seesaw_core::testing::assert_workflow;
 ///
 /// #[test]
 /// fn test_bake_workflow() {
@@ -128,8 +126,6 @@ macro_rules! assert_workflow {
     };
 }
 
-pub use assert_workflow;
-
 /// Fluent test builder for machine workflows.
 ///
 /// Provides a chainable API for testing state machine transitions with
@@ -138,7 +134,7 @@ pub use assert_workflow;
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::testing::WorkflowTest;
+/// use seesaw_core::testing::WorkflowTest;
 ///
 /// WorkflowTest::new(NotificationMachine::new())
 ///     // Test initial event
@@ -290,7 +286,7 @@ where
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::testing::MachineTestExt;
+/// use seesaw_core::testing::MachineTestExt;
 ///
 /// MyMachine::new()
 ///     .test()
@@ -334,7 +330,7 @@ where
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::testing::EventLatch;
+/// use seesaw_core::testing::EventLatch;
 ///
 /// #[tokio::test]
 /// async fn test_notification_fan_out() {
@@ -472,7 +468,7 @@ pub fn shared_latch(expected: usize) -> SharedEventLatch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Command;
+    use seesaw_core::Command;
 
     // Test types
     #[derive(Debug, Clone, PartialEq)]
@@ -687,7 +683,7 @@ pub struct EnqueuedJob {
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::testing::SpyJobQueue;
+/// use seesaw_core::testing::SpyJobQueue;
 ///
 /// let spy = SpyJobQueue::new();
 /// let dispatcher = Dispatcher::with_job_queue(deps, bus, Arc::new(spy.clone()));
@@ -946,8 +942,8 @@ pub enum JobStatus {
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::testing::MockJobStore;
-/// use seesaw::job::{JobStore, ClaimedJob, FailureKind};
+/// use seesaw_core::testing::MockJobStore;
+/// use seesaw_core::job::{JobStore, ClaimedJob, FailureKind};
 ///
 /// let store = MockJobStore::new();
 ///
@@ -1098,12 +1094,12 @@ impl MockJobStore {
 }
 
 #[async_trait::async_trait]
-impl crate::job::JobStore for MockJobStore {
+impl seesaw_core::JobStore for MockJobStore {
     async fn claim_ready(
         &self,
         _worker_id: &str,
         limit: i64,
-    ) -> Result<Vec<crate::job::ClaimedJob>> {
+    ) -> Result<Vec<seesaw_core::ClaimedJob>> {
         let now = Utc::now();
         let mut jobs = self.jobs.lock().unwrap();
         let mut claimed = Vec::new();
@@ -1125,7 +1121,7 @@ impl crate::job::JobStore for MockJobStore {
                 job.status = JobStatus::Claimed;
                 job.attempt += 1;
 
-                claimed.push(crate::job::ClaimedJob {
+                claimed.push(seesaw_core::ClaimedJob {
                     id: job.id,
                     job_type: job.job_type.clone(),
                     payload: job.payload.clone(),
@@ -1152,18 +1148,18 @@ impl crate::job::JobStore for MockJobStore {
         &self,
         job_id: Uuid,
         error: &str,
-        kind: crate::job::FailureKind,
+        kind: seesaw_core::FailureKind,
     ) -> Result<()> {
         let mut jobs = self.jobs.lock().unwrap();
         if let Some(job) = jobs.iter_mut().find(|j| j.id == job_id) {
             job.error = Some(error.to_string());
             match kind {
-                crate::job::FailureKind::Retryable => {
+                seesaw_core::FailureKind::Retryable => {
                     job.status = JobStatus::Failed;
                     // Reset to pending for retry (simplified - real impl would have backoff)
                     job.status = JobStatus::Pending;
                 }
-                crate::job::FailureKind::NonRetryable => {
+                seesaw_core::FailureKind::NonRetryable => {
                     job.status = JobStatus::DeadLetter;
                 }
             }
@@ -1194,7 +1190,7 @@ impl crate::job::JobStore for MockJobStore {
 #[cfg(test)]
 mod mock_store_tests {
     use super::*;
-    use crate::job::{FailureKind, JobStore};
+    use seesaw_core::{FailureKind, JobStore};
 
     #[test]
     fn test_mock_store_seed_job() {

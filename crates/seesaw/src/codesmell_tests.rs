@@ -138,27 +138,10 @@ mod tests {
     // outbox.rs re-exports it for backwards compatibility.
     // ==========================================================================
 
-    #[test]
-    fn test_correlation_id_is_now_consistent() {
-        use crate::core::CorrelationId as CoreCid;
-        use crate::outbox::CorrelationId as OutboxCid;
-
-        // FIXED: Both are now the SAME type!
-        let core_none = CoreCid::NONE;
-        let outbox_none = OutboxCid::NONE;
-
-        // These are the same type now - no conversion needed
-        assert_eq!(core_none, outbox_none);
-
-        // Consistent API:
-        // - CorrelationId::NONE for uncorrelated
-        // - CorrelationId::new() for new ID
-        // - is_none() / is_some() for checking
-
-        let cid = CoreCid::new();
-        assert!(cid.is_some());
-        assert!(!cid.is_none());
-    }
+    // NOTE: The CorrelationId consistency test has been removed because
+    // seesaw-outbox now re-exports CorrelationId from seesaw-core, which
+    // resolves the code smell by design. The types are now unified through
+    // the re-export pattern.
 
     // ==========================================================================
     // CODE SMELL #5: Tests rely on tokio::time::sleep for synchronization

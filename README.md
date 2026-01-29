@@ -8,8 +8,11 @@ Named after the playground equipment that balances back and forth — representi
 
 This repository is organized as a Cargo workspace:
 
-- **[seesaw](./crates/seesaw)** - Core event-driven coordination framework
+- **[seesaw-core](./crates/seesaw)** - Core event-driven coordination framework
 - **[seesaw-job-postgres](./crates/seesaw-job-postgres)** - PostgreSQL job queue implementation
+- **[seesaw-outbox](./crates/seesaw-outbox)** - Transactional outbox pattern for durable events
+- **[seesaw-persistence](./crates/seesaw-persistence)** - Machine state persistence for crash recovery
+- **[seesaw-testing](./crates/seesaw-testing)** - Testing utilities for state machine workflows
 
 ## Core Principle
 
@@ -54,7 +57,7 @@ EventBus → Machine.decide() → Command → Dispatcher → Effect.execute() �
 ## Quick Start
 
 ```rust
-use seesaw::{
+use seesaw_core::{
     Command, Machine, Effect, EffectContext,
     EngineBuilder,
 };
@@ -311,7 +314,7 @@ ctx.correlation_id()
 Taps observe **committed facts** after effects complete. They run fire-and-forget and cannot emit new events.
 
 ```rust
-use seesaw::{EventTap, TapContext};
+use seesaw_core::{EventTap, TapContext};
 
 pub struct NatsPublishTap {
     client: async_nats::Client,
@@ -376,7 +379,7 @@ Other builder methods:
 For edge code that needs a response, use `dispatch_request`:
 
 ```rust
-use seesaw::{dispatch_request, EnvelopeMatch};
+use seesaw_core::{dispatch_request, EnvelopeMatch};
 
 let entry = dispatch_request(
     EntryRequestEvent::Create { ... },
@@ -401,7 +404,7 @@ Commands with `Background`/`Scheduled` execution modes need:
 - `auto_serialize!()` macro (one-liner for serde serialization)
 
 ```rust
-use seesaw::{Command, ExecutionMode, JobSpec, auto_serialize};
+use seesaw_core::{Command, ExecutionMode, JobSpec, auto_serialize};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -472,7 +475,7 @@ fn decide(&mut self, event: &TaskEvent) -> Option<ReminderCommand> {
 For events that must survive crashes, use the transactional outbox pattern:
 
 ```rust
-use seesaw::outbox::{OutboxEvent, OutboxWriter, CorrelationId};
+use seesaw_outbox::{OutboxEvent, OutboxWriter, CorrelationId};
 
 // 1. Mark event for outbox persistence
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -549,19 +552,20 @@ fn test_machine_state_transitions() {
 }
 ```
 
-### Testing Utilities (requires `testing` feature)
+### Testing Utilities
 
-Enable the `testing` feature for ergonomic test helpers:
+The `seesaw-testing` crate provides ergonomic test helpers:
 
 ```toml
 [dev-dependencies]
-seesaw = { version = "0.1", features = ["testing"] }
+seesaw-core = { version = "0.1" }
+seesaw-testing = { version = "0.1" }
 ```
 
 **Using `assert_workflow!` macro:**
 
 ```rust
-use seesaw::testing::assert_workflow;
+use seesaw_testing::assert_workflow;
 
 #[test]
 fn test_order_workflow() {
@@ -579,7 +583,7 @@ fn test_order_workflow() {
 **Using fluent builder:**
 
 ```rust
-use seesaw::testing::{WorkflowTest, MachineTestExt};
+use seesaw_testing::{WorkflowTest, MachineTestExt};
 
 #[test]
 fn test_notification_workflow() {
@@ -599,7 +603,7 @@ fn test_notification_workflow() {
 **Using `EventLatch` for fan-out tests:**
 
 ```rust
-use seesaw::testing::shared_latch;
+use seesaw_testing::shared_latch;
 
 #[tokio::test]
 async fn test_notification_fan_out() {
@@ -620,7 +624,7 @@ async fn test_notification_fan_out() {
 **Using `SpyJobQueue` for background job assertions:**
 
 ```rust
-use seesaw::testing::SpyJobQueue;
+use seesaw_testing::SpyJobQueue;
 
 #[tokio::test]
 async fn test_background_job_enqueued() {
@@ -639,8 +643,8 @@ async fn test_background_job_enqueued() {
 **Using `MockJobStore` for job lifecycle tests:**
 
 ```rust
-use seesaw::testing::{MockJobStore, JobStatus};
-use seesaw::job::JobStore;
+use seesaw_testing::{MockJobStore, JobStatus};
+use seesaw_core::job::JobStore;
 
 #[tokio::test]
 async fn test_job_claim_and_complete() {

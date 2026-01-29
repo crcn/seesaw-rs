@@ -26,7 +26,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use seesaw::{CorrelationId, outbox::{OutboxEvent, OutboxWriter}};
+//! use seesaw_core::{CorrelationId, outbox::{OutboxEvent, OutboxWriter}};
 //!
 //! // 1. Mark event for outbox persistence
 //! #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,11 +64,11 @@ use chrono::{DateTime, Utc};
 use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
 
-use crate::bus::EventBus;
-use crate::core::Event;
+use seesaw_core::EventBus;
+use seesaw_core::Event;
 
 // Re-export CorrelationId from core for backwards compatibility
-pub use crate::core::CorrelationId;
+pub use seesaw_core::CorrelationId;
 
 // =============================================================================
 // OutboxEvent Trait
@@ -89,7 +89,7 @@ pub use crate::core::CorrelationId;
 /// # Example
 ///
 /// ```ignore
-/// use seesaw::outbox::OutboxEvent;
+/// use seesaw_core::outbox::OutboxEvent;
 /// use serde::{Deserialize, Serialize};
 /// use uuid::Uuid;
 ///

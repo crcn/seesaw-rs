@@ -164,7 +164,6 @@ mod effect_impl;
 mod engine;
 mod error;
 mod machine;
-mod persistence;
 mod request;
 mod runtime;
 mod tap;
@@ -172,16 +171,11 @@ mod tap;
 // Job interfaces (policy-light)
 pub mod job;
 
-// Outbox module for durable event persistence
-pub mod outbox;
-
 // Debug auditing for event visibility
 #[cfg(debug_assertions)]
 pub mod audit;
 
-// Testing utilities (feature-gated)
-#[cfg(feature = "testing")]
-pub mod testing;
+// Testing utilities are in the separate seesaw-testing crate
 
 // Code smell tests (test-only)
 #[cfg(test)]
@@ -232,13 +226,6 @@ pub use runtime::{Runtime, RuntimeBuilder};
 
 // Re-export engine types (primary entry point)
 pub use engine::{Engine, EngineBuilder, EngineHandle, InflightBatch, InflightTracker};
-
-// Re-export persistence types
-pub use persistence::{MachineStore, PersistentMachine, Revision, Router, StoreError};
-
-// Re-export persistence testing utilities (feature-gated)
-#[cfg(any(test, feature = "testing"))]
-pub use persistence::testing::InMemoryStore;
 
 // Re-export commonly used external types
 pub use async_trait::async_trait;

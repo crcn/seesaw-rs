@@ -1,5 +1,5 @@
 [package]
-name = "seesaw"
+name = "seesaw-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,7 +7,6 @@ description = "A deterministic, event-driven coordination layer where machines d
 
 [features]
 default = []
-testing = []
 
 [dependencies]
 anyhow.workspace = true
@@ -26,4 +25,5 @@ uuid.workspace = true
 
 [dev-dependencies]
 fastrand.workspace = true
+seesaw-outbox = { path = "../seesaw-outbox" }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }

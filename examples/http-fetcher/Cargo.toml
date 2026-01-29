@@ -1,0 +1,12 @@
+[package]
+name = "http-fetcher-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+seesaw-core = { path = "../../crates/seesaw" }
+tokio = { version = "1.49", features = ["full"] }
+reqwest = "0.12"
+anyhow = "1.0"
+uuid = { version = "1.20", features = ["v4"] }
+async-trait = "0.1"

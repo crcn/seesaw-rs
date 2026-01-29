@@ -298,7 +298,7 @@ mod tests {
 
         let silent = log.silent_events();
         assert_eq!(silent.len(), 1);
-        assert_eq!(silent[0].event_type_name, "seesaw::audit::tests::TestEvent");
+        assert_eq!(silent[0].event_type_name, "seesaw_core::audit::tests::TestEvent");
     }
 
     #[test]

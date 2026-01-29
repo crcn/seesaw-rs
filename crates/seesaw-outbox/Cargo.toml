@@ -1,15 +1,16 @@
 [package]
-name = "seesaw-job-postgres"
+name = "seesaw-outbox"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "PostgreSQL implementation of seesaw job queue"
+description = "Transactional outbox pattern for Seesaw framework"
 
 [dependencies]
 seesaw-core = { path = "../seesaw" }
 anyhow.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
+dashmap.workspace = true
+serde.workspace = true
 serde_json.workspace = true
-sqlx = { workspace = true, default-features = false, features = ["runtime-tokio", "postgres", "chrono", "uuid", "json", "macros"] }
 uuid.workspace = true
