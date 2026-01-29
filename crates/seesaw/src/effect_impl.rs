@@ -126,89 +126,6 @@ impl<D> EffectContext<D> {
         &self.deps
     }
 
-    /// Get a clone of the event bus.
-    ///
-    /// # ⚠️ DEPRECATED - Will be removed in v0.2.0
-    ///
-    /// **Migration helper**: This method exists only for backwards compatibility
-    /// during migration from the compat layer.
-    ///
-    /// Effects should not need direct bus access. Instead:
-    /// - Return events from `execute()` (Runtime emits)
-    /// - Use `signal()` for UI-only notifications
-    #[deprecated(
-        since = "0.1.1",
-        note = "Effects should not access the bus directly. Return events from execute() instead."
-    )]
-    pub fn bus(&self) -> EventBus {
-        self.bus.clone()
-    }
-
-    /// Get a clone of the dependencies Arc.
-    ///
-    /// # ⚠️ DEPRECATED - Will be removed in v0.2.0
-    ///
-    /// **Migration helper**: This method exists only for backwards compatibility
-    /// during migration from the compat layer.
-    ///
-    /// Prefer using `deps()` directly. If you need owned access to deps,
-    /// clone specific fields rather than the entire Arc.
-    #[deprecated(
-        since = "0.1.1",
-        note = "Use deps() directly. Clone specific fields if owned access is needed."
-    )]
-    pub fn deps_arc(&self) -> Arc<D> {
-        self.deps.clone()
-    }
-
-    /// Emit an event directly to the bus.
-    ///
-    /// # ⚠️ DEPRECATED - Will be removed in v0.2.0
-    ///
-    /// Effects should **return** events, not emit them directly.
-    /// The Runtime is the sole emitter - this ensures determinism and auditability.
-    ///
-    /// **Before (deprecated):**
-    /// ```ignore
-    /// async fn execute(&self, cmd: Cmd, ctx: EffectContext<D>) -> Result<()> {
-    ///     ctx.emit(MyEvent::Done { id });  // ❌ Don't do this
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// **After (correct):**
-    /// ```ignore
-    /// async fn execute(&self, cmd: Cmd, ctx: EffectContext<D>) -> Result<MyEvent> {
-    ///     Ok(MyEvent::Done { id })  // ✅ Return the event
-    /// }
-    /// ```
-    ///
-    /// This method remains available for:
-    /// - Migration of legacy effects
-    /// - Edge cases where multiple events are genuinely needed (rare)
-    ///
-    /// For multi-event scenarios, prefer a single compound event or
-    /// chained commands through machine decisions.
-    #[deprecated(
-        since = "0.1.1",
-        note = "Effects should return events, not emit them. Use `execute() -> Result<Self::Event>` pattern."
-    )]
-    pub fn emit<E: Event>(&self, event: E) {
-        match self.cid {
-            Some(cid) => {
-                // Increment BEFORE emit to prevent race with Runtime processing
-                if let Some(tracker) = &self.inflight {
-                    tracker.inc(cid, 1);
-                }
-                self.bus.emit_with_correlation(event, cid);
-            }
-            None => {
-                // Fire-and-forget: random correlation ID
-                self.bus.emit(event);
-            }
-        }
-    }
-
     /// Get the correlation ID for outbox writes.
     ///
     /// Returns the `CorrelationId` suitable for use with `OutboxWriter::write_event`.
@@ -259,15 +176,15 @@ impl<D> EffectContext<D> {
     /// # Example
     ///
     /// ```ignore
-    /// async fn execute(&self, cmd: GenerateReplyCommand, ctx: EffectContext<Deps>) -> Result<AgentEvent> {
-    ///     // Signal typing started (UI-only, not a fact)
-    ///     ctx.signal(TypingStarted { container_id, member_id });
+    /// async fn execute(&self, cmd: ProcessCommand, ctx: EffectContext<Deps>) -> Result<ProcessEvent> {
+    ///     // Signal progress started (UI-only, not a fact)
+    ///     ctx.signal(ProgressSignal { task_id: cmd.task_id, percent: 0 });
     ///
     ///     // Do the actual work...
-    ///     let response = generate_ai_response(...).await?;
+    ///     let result = process_data(...).await?;
     ///
     ///     // Return the fact event
-    ///     Ok(AgentEvent::ReplySent { entry })
+    ///     Ok(ProcessEvent::Completed { task_id: cmd.task_id, result })
     /// }
     /// ```
     pub fn signal<E: Event>(&self, event: E) {
@@ -316,11 +233,6 @@ impl<D> EffectContext<D> {
     ///
     /// This provides the deps and bus needed by agent tools that call
     /// `dispatch_request` during their execution.
-    ///
-    /// # Preferred over deprecated methods
-    ///
-    /// Use this instead of `ctx.bus()` + `ctx.deps_arc()`. This method
-    /// makes the intent clear: tools need interactive access.
     pub fn tool_context(&self) -> ToolContext<D> {
         ToolContext {
             deps: self.deps.clone(),
@@ -616,23 +528,6 @@ mod tests {
         let ctx = EffectContext::new(deps, bus);
 
         assert_eq!(ctx.deps().value, 42);
-    }
-
-    #[tokio::test]
-    async fn test_effect_context_emit() {
-        let deps = Arc::new(TestDeps { value: 0 });
-        let bus = EventBus::new();
-        let mut receiver = bus.subscribe();
-
-        let ctx = EffectContext::new(deps, bus);
-
-        ctx.emit(TestEvent {
-            result: "hello".to_string(),
-        });
-
-        let event = receiver.recv().await.unwrap();
-        let test_event = event.downcast_ref::<TestEvent>().unwrap();
-        assert_eq!(test_event.result, "hello");
     }
 
     #[tokio::test]

@@ -71,12 +71,6 @@ pub struct JobSpec {
     /// Payload schema version for backward compatibility.
     /// Versioning/migration logic belongs in the job worker, not here.
     pub version: i32,
-
-    /// Optional reference ID for tracking purposes.
-    pub reference_id: Option<Uuid>,
-
-    /// Optional container scope for multi-tenancy.
-    pub container_id: Option<Uuid>,
 }
 
 impl JobSpec {
@@ -92,8 +86,6 @@ impl JobSpec {
             max_retries: 3,
             priority: 0,
             version: 1,
-            reference_id: None,
-            container_id: None,
         }
     }
 
@@ -118,18 +110,6 @@ impl JobSpec {
     /// Set the payload schema version.
     pub fn with_version(mut self, v: i32) -> Self {
         self.version = v;
-        self
-    }
-
-    /// Set an optional reference ID for tracking.
-    pub fn with_reference_id(mut self, id: Uuid) -> Self {
-        self.reference_id = Some(id);
-        self
-    }
-
-    /// Set an optional container ID for multi-tenancy.
-    pub fn with_container_id(mut self, id: Uuid) -> Self {
-        self.container_id = Some(id);
         self
     }
 }
@@ -304,21 +284,21 @@ impl std::fmt::Debug for EventEnvelope {
 /// # Example
 ///
 /// ```ignore
-/// enum DeckEvent {
+/// enum OrderEvent {
 ///     // Input - "a request was made" (edge-originated)
-///     CreateRequested { container_id: Uuid, actor_id: MemberId },
+///     PlaceRequested { user_id: Uuid, items: Vec<Item> },
 ///
 ///     // Fact - "this happened" (effect-produced)
-///     Created { deck: Deck },
+///     Placed { order_id: Uuid, total: Decimal },
 ///
 ///     // Signal would use ctx.signal() instead
 /// }
 ///
-/// impl DeckEvent {
+/// impl OrderEvent {
 ///     pub fn role(&self) -> EventRole {
 ///         match self {
-///             Self::CreateRequested { .. } => EventRole::Input,
-///             Self::Created { .. } => EventRole::Fact,
+///             Self::PlaceRequested { .. } => EventRole::Input,
+///             Self::Placed { .. } => EventRole::Fact,
 ///             // ...
 ///         }
 ///     }
@@ -847,8 +827,6 @@ mod tests {
         assert_eq!(spec.max_retries, 3);
         assert_eq!(spec.priority, 0);
         assert_eq!(spec.version, 1);
-        assert_eq!(spec.reference_id, None);
-        assert_eq!(spec.container_id, None);
     }
 
     #[test]
@@ -902,41 +880,18 @@ mod tests {
     }
 
     #[test]
-    fn test_job_spec_with_reference_id() {
-        let id = Uuid::new_v4();
-        let spec = JobSpec::new("entity:process").with_reference_id(id);
-
-        assert_eq!(spec.reference_id, Some(id));
-    }
-
-    #[test]
-    fn test_job_spec_with_container_id() {
-        let tenant_id = Uuid::new_v4();
-        let spec = JobSpec::new("tenant:job").with_container_id(tenant_id);
-
-        assert_eq!(spec.container_id, Some(tenant_id));
-    }
-
-    #[test]
     fn test_job_spec_builder_chaining() {
-        let ref_id = Uuid::new_v4();
-        let container_id = Uuid::new_v4();
-
         let spec = JobSpec::new("complex:job")
             .with_idempotency_key("key:123")
             .with_max_retries(5)
             .with_priority(10)
-            .with_version(2)
-            .with_reference_id(ref_id)
-            .with_container_id(container_id);
+            .with_version(2);
 
         assert_eq!(spec.job_type, "complex:job");
         assert_eq!(spec.idempotency_key, Some("key:123".to_string()));
         assert_eq!(spec.max_retries, 5);
         assert_eq!(spec.priority, 10);
         assert_eq!(spec.version, 2);
-        assert_eq!(spec.reference_id, Some(ref_id));
-        assert_eq!(spec.container_id, Some(container_id));
     }
 
     #[test]

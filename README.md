@@ -4,6 +4,13 @@ An event-driven architecture framework that separates **facts** (Events) from **
 
 Named after the playground equipment that balances back and forth — representing the balance between events flowing in and commands flowing out.
 
+## Workspace Structure
+
+This repository is organized as a Cargo workspace:
+
+- **[seesaw](./crates/seesaw)** - Core event-driven coordination framework
+- **[seesaw-job-postgres](./crates/seesaw-job-postgres)** - PostgreSQL job queue implementation
+
 ## Core Principle
 
 **One Command = One Transaction.** If multiple writes must be atomic, they belong in one command handled by one effect.
@@ -298,12 +305,6 @@ let tool_ctx = ctx.tool_context();
 // Get correlation ID directly
 ctx.correlation_id()
 ```
-
-**Deprecated methods** (will be removed in v0.2.0):
-
-- `ctx.emit()` - Return events from `execute()` instead
-- `ctx.bus()` - Effects should not access the bus directly
-- `ctx.deps_arc()` - Use `deps()` directly
 
 ### Event Taps
 

@@ -16,12 +16,12 @@
 //! ```ignore
 //! use seesaw::{dispatch_request, EnvelopeMatch};
 //!
-//! let entry: Entry = dispatch_request(
-//!     EntryRequestEvent::Create { ... },
+//! let user: User = dispatch_request(
+//!     UserRequestEvent::Create { email, name },
 //!     &bus,
 //!     |m| {
-//!         m.try_match(|e: &EntryEvent| match e {
-//!             EntryEvent::Created { entry } => Some(Ok(entry.clone())),
+//!         m.try_match(|e: &UserEvent| match e {
+//!             UserEvent::Created { user } => Some(Ok(user.clone())),
 //!             _ => None,
 //!         })
 //!         .or_try(|denied: &AuthorizationDenied| {
@@ -63,10 +63,10 @@ pub const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 /// # Example
 ///
 /// ```ignore
-/// let entry = dispatch_request(
-///     CreateEntryRequest { ... },
+/// let user = dispatch_request(
+///     CreateUserRequest { email, name },
 ///     &bus,
-///     |m| m.try_match(|e: &EntryCreated| Some(Ok(e.entry.clone()))).result()
+///     |m| m.try_match(|e: &UserCreated| Some(Ok(e.user.clone()))).result()
 /// ).await?;
 /// ```
 pub async fn dispatch_request<Req, Res, F>(

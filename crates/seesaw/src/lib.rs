@@ -38,7 +38,7 @@
 //!                     ▼                          │
 //!               Effect.execute()                 │
 //!                     │                          │
-//!                     └─► ctx.emit() ────────────┘
+//!                     └─► return Event ──────────┘
 //! ```
 //!
 //! ## Key Invariants
@@ -111,20 +111,23 @@
 //!     }
 //! }
 //!
-//! // 4. Define effects (IO + emit events)
+//! // 4. Define effects (IO + return events)
 //! struct SetupEffect;
 //!
 //! #[async_trait::async_trait]
 //! impl Effect<BakeCommand, MyDeps> for SetupEffect {
-//!     async fn execute(&self, cmd: BakeCommand, ctx: EffectContext<MyDeps>) -> anyhow::Result<()> {
+//!     type Event = BakeEvent;
+//!
+//!     async fn execute(&self, cmd: BakeCommand, ctx: EffectContext<MyDeps>) -> anyhow::Result<BakeEvent> {
 //!         if let BakeCommand::SetupLoaf { deck_id, recipe_id } = cmd {
 //!             let loaf_id = ctx.deps().db.transaction(|tx| async {
 //!                 // Create loaf in transaction
 //!             }).await?;
 //!
-//!             ctx.emit(BakeEvent::LoafReady { loaf_id });
+//!             Ok(BakeEvent::LoafReady { loaf_id })
+//!         } else {
+//!             unreachable!()
 //!         }
-//!         Ok(())
 //!     }
 //! }
 //!

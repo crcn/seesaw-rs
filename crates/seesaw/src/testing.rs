@@ -797,37 +797,6 @@ impl SpyJobQueue {
     }
 
     /// Check if a job was scheduled for a specific reference ID and job type.
-    ///
-    /// This is useful for verifying that background jobs were created for
-    /// specific entities (e.g., an entry ID triggered a job).
-    pub fn was_scheduled_for(&self, reference_id: Uuid, job_type: &str) -> bool {
-        self.enqueued
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|j| j.job_type == job_type && j.spec.reference_id == Some(reference_id))
-    }
-
-    /// Assert a job was scheduled for a specific reference ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if no job with the given type and reference ID was enqueued.
-    pub fn assert_scheduled_for(&self, reference_id: Uuid, job_type: &str) {
-        let jobs = self.jobs_of_type(job_type);
-        let found = jobs
-            .iter()
-            .any(|j| j.spec.reference_id == Some(reference_id));
-        assert!(
-            found,
-            "Expected job '{}' with reference_id '{}' to be enqueued. Found {} jobs of this type: {:?}",
-            job_type,
-            reference_id,
-            jobs.len(),
-            jobs.iter().map(|j| &j.spec.reference_id).collect::<Vec<_>>()
-        );
-    }
-
     /// Assert the exact count of jobs of a given type.
     ///
     /// # Panics
@@ -888,31 +857,6 @@ impl SpyJobQueue {
             job_type,
             min_time,
             jobs.iter().map(|j| j.scheduled_at).collect::<Vec<_>>()
-        );
-    }
-
-    /// Get jobs with a specific container ID (useful for multi-tenant testing).
-    pub fn jobs_for_container(&self, container_id: Uuid) -> Vec<EnqueuedJob> {
-        self.enqueued
-            .lock()
-            .unwrap()
-            .iter()
-            .filter(|j| j.spec.container_id == Some(container_id))
-            .cloned()
-            .collect()
-    }
-
-    /// Assert jobs were enqueued for a specific container.
-    ///
-    /// # Panics
-    ///
-    /// Panics if no jobs for the container exist.
-    pub fn assert_has_jobs_for_container(&self, container_id: Uuid) {
-        let jobs = self.jobs_for_container(container_id);
-        assert!(
-            !jobs.is_empty(),
-            "Expected jobs for container_id '{}', found none",
-            container_id
         );
     }
 }
@@ -1582,46 +1526,6 @@ mod spy_tests {
     }
 
     #[tokio::test]
-    async fn test_spy_queue_was_scheduled_for() {
-        let spy = SpyJobQueue::new();
-        let entity_id = Uuid::new_v4();
-
-        spy.enqueue(
-            serde_json::json!({}),
-            JobSpec::new("entity:process").with_reference_id(entity_id),
-        )
-        .await
-        .unwrap();
-
-        assert!(spy.was_scheduled_for(entity_id, "entity:process"));
-        assert!(!spy.was_scheduled_for(entity_id, "other:type"));
-        assert!(!spy.was_scheduled_for(Uuid::new_v4(), "entity:process"));
-    }
-
-    #[tokio::test]
-    async fn test_spy_queue_assert_scheduled_for() {
-        let spy = SpyJobQueue::new();
-        let entity_id = Uuid::new_v4();
-
-        spy.enqueue(
-            serde_json::json!({}),
-            JobSpec::new("entity:process").with_reference_id(entity_id),
-        )
-        .await
-        .unwrap();
-
-        // Should not panic
-        spy.assert_scheduled_for(entity_id, "entity:process");
-    }
-
-    #[test]
-    #[should_panic(expected = "Expected job")]
-    fn test_spy_queue_assert_scheduled_for_fails() {
-        let spy = SpyJobQueue::new();
-        spy.assert_scheduled_for(Uuid::new_v4(), "missing:type");
-    }
-
-    #[tokio::test]
     async fn test_spy_queue_multiple_jobs_same_type() {
         let spy = SpyJobQueue::new();
 
@@ -1648,16 +1552,12 @@ mod spy_tests {
     #[tokio::test]
     async fn test_spy_queue_job_contains_full_spec() {
         let spy = SpyJobQueue::new();
-        let ref_id = Uuid::new_v4();
-        let container_id = Uuid::new_v4();
 
         let spec = JobSpec::new("full:spec")
             .with_idempotency_key("idem:key")
             .with_max_retries(5)
             .with_priority(10)
-            .with_version(2)
-            .with_reference_id(ref_id)
-            .with_container_id(container_id);
+            .with_version(2);
 
         spy.enqueue(serde_json::json!({"data": "test"}), spec)
             .await
@@ -1670,8 +1570,6 @@ mod spy_tests {
         assert_eq!(job.spec.max_retries, 5);
         assert_eq!(job.spec.priority, 10);
         assert_eq!(job.spec.version, 2);
-        assert_eq!(job.spec.reference_id, Some(ref_id));
-        assert_eq!(job.spec.container_id, Some(container_id));
     }
 
     #[tokio::test]

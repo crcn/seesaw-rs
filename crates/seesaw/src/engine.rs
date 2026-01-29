@@ -37,10 +37,10 @@
 //! - Error propagation back to the caller
 //!
 //! ```ignore
-//! pub async fn create_entry(input: CreateEntry, handle: &EngineHandle) -> Result<Entry> {
-//!     handle.emit_and_await(EntryEvent::CreateRequested { input }).await?;
+//! pub async fn create_user(input: CreateUser, handle: &EngineHandle) -> Result<User> {
+//!     handle.emit_and_await(UserEvent::CreateRequested { input }).await?;
 //!     // All inline DB transactions committed, all cascading inline work done
-//!     Ok(entry)
+//!     Ok(user)
 //! }
 //! ```
 
